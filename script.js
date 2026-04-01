@@ -2,11 +2,12 @@
 // 4月目標管理アプリ - PBL Tracker
 // ===================================
 
-// --- localStorageのキー ---
-const STORAGE_KEY = "april-2026-pbl";
+// --- Supabase接続設定 ---
+const SUPABASE_URL = "https://liitvaopboonilnpbfyl.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpaXR2YW9wYm9vbmlsbnBiZnlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwMDMxMDksImV4cCI6MjA5MDU3OTEwOX0.XRkV2kANasbHBPi27bgcgCkS3_Hle5lJj1sRU7WLxJs";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // --- ステータスの定義 ---
-// 丸ボタンをクリックするたびに、この順番で切り替わる
 const STATUS_CYCLE = ["not-started", "in-progress", "done"];
 const STATUS_LABELS = {
   "not-started": "未着手",
@@ -14,7 +15,7 @@ const STATUS_LABELS = {
   "done": "完了",
 };
 
-// --- テーマカラー（目標ごとに順番に使われる） ---
+// --- テーマカラー ---
 const GOAL_COLORS = [
   "#e74c3c", "#e67e22", "#f1c40f", "#27ae60",
   "#3498db", "#9b59b6", "#1abc9c", "#e84393",
@@ -31,7 +32,6 @@ const actionMemoInput = document.getElementById("action-memo-input");
 const saveActionBtn = document.getElementById("save-action-btn");
 const cancelActionBtn = document.getElementById("cancel-action-btn");
 
-// 目標追加モーダル
 const goalModalOverlay = document.getElementById("goal-modal-overlay");
 const goalTitleInput = document.getElementById("goal-title-input");
 const goalEmojiInput = document.getElementById("goal-emoji-input");
@@ -39,14 +39,15 @@ const saveGoalBtn = document.getElementById("save-goal-btn");
 const cancelGoalBtn = document.getElementById("cancel-goal-btn");
 const addGoalBtn = document.getElementById("add-goal-btn");
 
-// 現在編集中のアクションを特定するための情報
 let editingGoalId = null;
 let editingActionId = null;
 
+// メモリ上にキャッシュしたデータ（毎回Supabaseに問い合わせなくて済むように）
+let cachedGoals = null;
+
 // ===================================
-// 初期データ（最初の1回だけ使われる）
+// 初期データ
 // ===================================
-// localStorageにデータがないとき、このデータが初期値として保存される
 
 function getInitialData() {
   return [
@@ -114,30 +115,56 @@ function getInitialData() {
 }
 
 // ===================================
-// データの読み書き
+// データの読み書き（Supabase）
 // ===================================
 
-function loadGoals() {
-  const data = localStorage.getItem(STORAGE_KEY);
-  if (!data) {
-    // 初回アクセス時：初期データを保存して返す
+/**
+ * Supabaseからデータを読み込む
+ * データがなければ初期データを保存してから返す
+ */
+async function loadGoals() {
+  // キャッシュがあればそれを返す（高速化）
+  if (cachedGoals) return cachedGoals;
+
+  const { data, error } = await supabase
+    .from("goals")
+    .select("data")
+    .eq("id", "default")
+    .single();
+
+  if (error || !data) {
+    // Supabaseにデータがない → 初期データを保存
     const initial = getInitialData();
-    saveGoals(initial);
+    await saveGoals(initial);
     return initial;
   }
-  return JSON.parse(data);
+
+  cachedGoals = data.data;
+  return cachedGoals;
 }
 
-function saveGoals(goals) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(goals));
+/**
+ * Supabaseにデータを保存する
+ * upsert = データがあれば更新、なければ新規作成
+ */
+async function saveGoals(goals) {
+  cachedGoals = goals; // キャッシュも更新
+
+  await supabase
+    .from("goals")
+    .upsert({
+      id: "default",
+      data: goals,
+      updated_at: new Date().toISOString(),
+    });
 }
 
 // ===================================
 // 描画
 // ===================================
 
-function render() {
-  const goals = loadGoals();
+async function render() {
+  const goals = await loadGoals();
   const filterValue = document.querySelector(".filter-btn.active").dataset.filter;
 
   goalsContainer.innerHTML = "";
@@ -146,18 +173,16 @@ function render() {
   let totalDone = 0;
 
   goals.forEach(function (goal, index) {
-    // 全体進捗の計算用
     goal.actions.forEach(function (a) {
       totalActions++;
       if (a.status === "done") totalDone++;
     });
 
-    // フィルタ適用：目標内のアクションでフィルタ条件に合うものがあるか
     if (filterValue !== "all") {
       const hasMatchingAction = goal.actions.some(function (a) {
         return a.status === filterValue;
       });
-      if (!hasMatchingAction) return; // この目標を表示しない
+      if (!hasMatchingAction) return;
     }
 
     const color = GOAL_COLORS[index % GOAL_COLORS.length];
@@ -165,7 +190,6 @@ function render() {
     goalsContainer.appendChild(card);
   });
 
-  // 全体進捗率を更新
   const percent = totalActions > 0 ? Math.round((totalDone / totalActions) * 100) : 0;
   overallPercent.textContent = percent + "%";
 }
@@ -174,24 +198,20 @@ function render() {
  * 目標カードを1つ作成する
  */
 function createGoalCard(goal, filterValue, displayNumber, color) {
-  // --- 進捗計算 ---
   const total = goal.actions.length;
   const doneCount = goal.actions.filter(function (a) { return a.status === "done"; }).length;
   const percent = total > 0 ? Math.round((doneCount / total) * 100) : 0;
 
-  // --- カード本体 ---
   const card = document.createElement("div");
   card.classList.add("goal-card");
   card.dataset.goal = goal.id;
   card.style.borderLeftColor = color;
 
-  // 前回展開していたかどうかを復元
   const expandedGoals = JSON.parse(localStorage.getItem("expanded-goals") || "[]");
   if (expandedGoals.includes(goal.id)) {
     card.classList.add("expanded");
   }
 
-  // --- ヘッダー（クリックで展開/折りたたみ） ---
   const header = document.createElement("div");
   header.classList.add("goal-header");
 
@@ -204,7 +224,6 @@ function createGoalCard(goal, filterValue, displayNumber, color) {
   const badge = document.createElement("span");
   badge.classList.add("priority-badge");
   badge.style.backgroundColor = color;
-  // 明るい色（黄色系）のバッジは黒文字にする
   if (color === "#f1c40f") badge.style.color = "#333";
   badge.textContent = displayNumber;
 
@@ -236,36 +255,29 @@ function createGoalCard(goal, filterValue, displayNumber, color) {
   titleRow.appendChild(progressInfo);
   header.appendChild(titleRow);
 
-  // ヘッダークリックで展開/折りたたみ
   header.addEventListener("click", function () {
     card.classList.toggle("expanded");
     saveExpandedState();
   });
 
-  // --- プログレスバー ---
   const progressBarContainer = document.createElement("div");
   progressBarContainer.classList.add("progress-bar-container");
 
   const progressBar = document.createElement("div");
   progressBar.classList.add("progress-bar");
   progressBar.style.width = percent + "%";
-
   progressBar.style.backgroundColor = color;
   progressBarContainer.appendChild(progressBar);
 
-  // --- アクション一覧 ---
   const actionsDiv = document.createElement("div");
   actionsDiv.classList.add("goal-actions");
 
   goal.actions.forEach(function (action) {
-    // フィルタ適用
     if (filterValue !== "all" && action.status !== filterValue) return;
-
     const actionItem = createActionItem(goal.id, action);
     actionsDiv.appendChild(actionItem);
   });
 
-  // アクション追加ボタン
   const addBtn = document.createElement("button");
   addBtn.classList.add("add-action-btn");
   addBtn.textContent = "＋ アクションを追加";
@@ -275,7 +287,6 @@ function createGoalCard(goal, filterValue, displayNumber, color) {
   });
   actionsDiv.appendChild(addBtn);
 
-  // --- 組み立て ---
   card.appendChild(header);
   card.appendChild(progressBarContainer);
   card.appendChild(actionsDiv);
@@ -293,7 +304,6 @@ function createActionItem(goalId, action) {
     item.classList.add("done");
   }
 
-  // --- ステータスボタン（丸） ---
   const statusBtn = document.createElement("button");
   statusBtn.classList.add("status-btn");
   if (action.status === "in-progress") {
@@ -304,13 +314,11 @@ function createActionItem(goalId, action) {
     statusBtn.textContent = "✓";
   }
 
-  // クリックでステータスを巡回: 未着手 → 進行中 → 完了 → 未着手...
   statusBtn.addEventListener("click", function (e) {
     e.stopPropagation();
     cycleStatus(goalId, action.id);
   });
 
-  // --- テキスト部分 ---
   const content = document.createElement("div");
   content.classList.add("action-content");
 
@@ -318,7 +326,6 @@ function createActionItem(goalId, action) {
   textSpan.classList.add("action-text");
   textSpan.textContent = action.text;
 
-  // テキストクリックで編集モーダル
   textSpan.addEventListener("click", function (e) {
     e.stopPropagation();
     openEditModal(goalId, action.id);
@@ -326,7 +333,6 @@ function createActionItem(goalId, action) {
 
   content.appendChild(textSpan);
 
-  // メモがあれば表示
   if (action.memo) {
     const memoDiv = document.createElement("div");
     memoDiv.classList.add("action-memo");
@@ -334,12 +340,10 @@ function createActionItem(goalId, action) {
     content.appendChild(memoDiv);
   }
 
-  // --- ステータスラベル ---
   const statusLabel = document.createElement("span");
   statusLabel.classList.add("action-status-label", action.status);
   statusLabel.textContent = STATUS_LABELS[action.status];
 
-  // --- 組み立て ---
   item.appendChild(statusBtn);
   item.appendChild(content);
   item.appendChild(statusLabel);
@@ -351,20 +355,19 @@ function createActionItem(goalId, action) {
 // ステータス変更
 // ===================================
 
-function cycleStatus(goalId, actionId) {
-  const goals = loadGoals();
+async function cycleStatus(goalId, actionId) {
+  const goals = await loadGoals();
   const goal = goals.find(function (g) { return g.id === goalId; });
   if (!goal) return;
 
   const action = goal.actions.find(function (a) { return a.id === actionId; });
   if (!action) return;
 
-  // 現在のステータスの次のステータスに切り替える
   const currentIndex = STATUS_CYCLE.indexOf(action.status);
   const nextIndex = (currentIndex + 1) % STATUS_CYCLE.length;
   action.status = STATUS_CYCLE[nextIndex];
 
-  saveGoals(goals);
+  await saveGoals(goals);
   render();
 }
 
@@ -372,11 +375,11 @@ function cycleStatus(goalId, actionId) {
 // アクション追加
 // ===================================
 
-function addNewAction(goalId) {
+async function addNewAction(goalId) {
   const text = prompt("新しいアクションを入力してください：");
   if (!text || !text.trim()) return;
 
-  const goals = loadGoals();
+  const goals = await loadGoals();
   const goal = goals.find(function (g) { return g.id === goalId; });
   if (!goal) return;
 
@@ -387,7 +390,7 @@ function addNewAction(goalId) {
     memo: "",
   });
 
-  saveGoals(goals);
+  await saveGoals(goals);
   render();
 }
 
@@ -395,11 +398,11 @@ function addNewAction(goalId) {
 // モーダル（アクション編集）
 // ===================================
 
-function openEditModal(goalId, actionId) {
+async function openEditModal(goalId, actionId) {
   editingGoalId = goalId;
   editingActionId = actionId;
 
-  const goals = loadGoals();
+  const goals = await loadGoals();
   const goal = goals.find(function (g) { return g.id === goalId; });
   if (!goal) return;
 
@@ -420,11 +423,11 @@ function closeModal() {
   editingActionId = null;
 }
 
-function saveActionEdit() {
+async function saveActionEdit() {
   const text = actionTextInput.value.trim();
   if (!text) return;
 
-  const goals = loadGoals();
+  const goals = await loadGoals();
   const goal = goals.find(function (g) { return g.id === editingGoalId; });
   if (!goal) return;
 
@@ -434,7 +437,7 @@ function saveActionEdit() {
   action.text = text;
   action.memo = actionMemoInput.value.trim();
 
-  saveGoals(goals);
+  await saveGoals(goals);
   closeModal();
   render();
 }
@@ -454,7 +457,7 @@ function closeGoalModal() {
   goalModalOverlay.classList.remove("active");
 }
 
-function saveNewGoal() {
+async function saveNewGoal() {
   const title = goalTitleInput.value.trim();
   if (!title) {
     goalTitleInput.style.borderColor = "#e74c3c";
@@ -464,7 +467,7 @@ function saveNewGoal() {
 
   const emoji = goalEmojiInput.value.trim() || "🎯";
 
-  const goals = loadGoals();
+  const goals = await loadGoals();
   goals.push({
     id: Date.now(),
     title: title,
@@ -472,13 +475,13 @@ function saveNewGoal() {
     actions: [],
   });
 
-  saveGoals(goals);
+  await saveGoals(goals);
   closeGoalModal();
   render();
 }
 
 // ===================================
-// 展開状態の保存/復元
+// 展開状態の保存/復元（これはUI状態なのでlocalStorageのまま）
 // ===================================
 
 function saveExpandedState() {
@@ -494,14 +497,11 @@ function saveExpandedState() {
 // フィルタ
 // ===================================
 
-// フィルタボタンのクリックイベント
 document.querySelectorAll(".filter-btn").forEach(function (btn) {
   btn.addEventListener("click", function () {
-    // 全ボタンからactiveを外す
     document.querySelectorAll(".filter-btn").forEach(function (b) {
       b.classList.remove("active");
     });
-    // クリックしたボタンにactiveを付ける
     btn.classList.add("active");
     render();
   });
@@ -522,7 +522,6 @@ actionTextInput.addEventListener("keydown", function (e) {
   if (e.key === "Enter") saveActionEdit();
 });
 
-// 目標追加モーダル
 addGoalBtn.addEventListener("click", openGoalModal);
 saveGoalBtn.addEventListener("click", saveNewGoal);
 cancelGoalBtn.addEventListener("click", closeGoalModal);
