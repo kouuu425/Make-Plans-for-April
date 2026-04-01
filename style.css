@@ -1,0 +1,507 @@
+/* ===================================
+   リセットと基本スタイル
+   =================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+  background-color: #f0f2f5;
+  color: #333;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ===================================
+   ヘッダー
+   =================================== */
+.app-header {
+  background: linear-gradient(135deg, #2c3e50, #3498db);
+  color: white;
+  padding: 20px 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-subtitle {
+  font-size: 13px;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.header-right {
+  text-align: right;
+}
+
+.overall-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.overall-label {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.overall-percent {
+  font-size: 32px;
+  font-weight: bold;
+}
+
+/* ===================================
+   フィルタバー
+   =================================== */
+.filter-bar {
+  padding: 12px 30px;
+  background-color: white;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 6px 16px;
+  border: 2px solid #ddd;
+  border-radius: 20px;
+  background: white;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #666;
+}
+
+.filter-btn:hover {
+  border-color: #3498db;
+  color: #3498db;
+}
+
+.filter-btn.active {
+  background-color: #3498db;
+  border-color: #3498db;
+  color: white;
+}
+
+/* ===================================
+   目標カード一覧
+   =================================== */
+.goals-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ===================================
+   目標カード
+   =================================== */
+.goal-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+.goal-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* 目標カードのヘッダー部分 */
+.goal-header {
+  padding: 16px 20px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.goal-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.goal-title {
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 優先度の番号バッジ */
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: bold;
+  color: white;
+  flex-shrink: 0;
+}
+
+/* 目標カードの左ボーダー（色はJSからインラインスタイルで設定） */
+.goal-card {
+  border-left: 4px solid transparent;
+}
+
+/* 進捗表示 */
+.goal-progress-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #888;
+  flex-shrink: 0;
+}
+
+.goal-percent {
+  font-weight: bold;
+  color: #333;
+  min-width: 36px;
+  text-align: right;
+}
+
+/* 展開/折りたたみアイコン */
+.toggle-icon {
+  font-size: 12px;
+  transition: transform 0.2s;
+  color: #aaa;
+}
+
+.goal-card.expanded .toggle-icon {
+  transform: rotate(90deg);
+}
+
+/* プログレスバー */
+.progress-bar-container {
+  height: 6px;
+  background-color: #eee;
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 0 20px;
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+  min-width: 0;
+}
+
+/* プログレスバーの色はJSからインラインスタイルで設定 */
+
+/* ===================================
+   アクション一覧（折りたたみ部分）
+   =================================== */
+.goal-actions {
+  display: none;
+  padding: 0 20px 16px;
+}
+
+.goal-card.expanded .goal-actions {
+  display: block;
+}
+
+/* アクションアイテム */
+.action-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  transition: background-color 0.15s;
+}
+
+.action-item:hover {
+  background-color: #f7f8fa;
+}
+
+/* ステータスボタン（丸いチェック） */
+.status-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid #ccc;
+  background: white;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 1px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: transparent;
+}
+
+.status-btn:hover {
+  border-color: #3498db;
+}
+
+.status-btn.in-progress {
+  border-color: #3498db;
+  background-color: #ebf5fb;
+  color: #3498db;
+}
+
+.status-btn.done {
+  border-color: #27ae60;
+  background-color: #27ae60;
+  color: white;
+}
+
+/* アクションのテキスト部分 */
+.action-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.action-text {
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+}
+
+.action-text:hover {
+  color: #3498db;
+}
+
+.action-item.done .action-text {
+  text-decoration: line-through;
+  color: #aaa;
+}
+
+/* メモ表示 */
+.action-memo {
+  font-size: 12px;
+  color: #999;
+  margin-top: 3px;
+  font-style: italic;
+}
+
+/* ステータスラベル */
+.action-status-label {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.action-status-label.not-started {
+  background-color: #f0f0f0;
+  color: #999;
+}
+
+.action-status-label.in-progress {
+  background-color: #ebf5fb;
+  color: #3498db;
+}
+
+.action-status-label.done {
+  background-color: #eafaf1;
+  color: #27ae60;
+}
+
+/* アクション追加ボタン */
+.add-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  background: transparent;
+  color: #aaa;
+  font-size: 13px;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 4px;
+  transition: all 0.2s;
+}
+
+.add-action-btn:hover {
+  border-color: #3498db;
+  color: #3498db;
+}
+
+/* ===================================
+   目標追加ボタン
+   =================================== */
+.add-goal-area {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 20px 30px;
+}
+
+.add-goal-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 14px;
+  border: 2px dashed #ccc;
+  border-radius: 12px;
+  background: white;
+  color: #999;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-goal-btn:hover {
+  border-color: #3498db;
+  color: #3498db;
+  background-color: #f7fbff;
+}
+
+/* 絵文字入力欄（小さめ） */
+.emoji-input {
+  width: 60px !important;
+  text-align: center;
+  font-size: 20px !important;
+}
+
+/* ===================================
+   モーダル
+   =================================== */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  width: 90%;
+  max-width: 450px;
+  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+}
+
+.modal h3 {
+  margin-bottom: 20px;
+  color: #2c3e50;
+  font-size: 18px;
+}
+
+.modal-form label {
+  display: block;
+  margin-bottom: 5px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: #555;
+  font-weight: bold;
+}
+
+.modal-form label:first-child {
+  margin-top: 0;
+}
+
+.modal-form input,
+.modal-form textarea,
+.modal-form select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  font-family: inherit;
+}
+
+.modal-form input:focus,
+.modal-form textarea:focus {
+  border-color: #3498db;
+}
+
+.modal-form textarea {
+  resize: vertical;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn:hover {
+  opacity: 0.85;
+}
+
+.btn-save {
+  background-color: #27ae60;
+  color: white;
+  flex: 1;
+}
+
+.btn-cancel {
+  background-color: #95a5a6;
+  color: white;
+  flex: 1;
+}
+
+/* ===================================
+   レスポンシブ
+   =================================== */
+@media (max-width: 600px) {
+  .app-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 15px 20px;
+  }
+
+  .header-right {
+    align-self: flex-end;
+  }
+
+  .overall-percent {
+    font-size: 24px;
+  }
+
+  .goals-container {
+    padding: 15px;
+  }
+
+  .filter-bar {
+    padding: 10px 20px;
+  }
+}

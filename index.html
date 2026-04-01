@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>4月の目標管理 - PBL Tracker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ===== ヘッダー ===== -->
+  <header class="app-header">
+    <div class="header-left">
+      <h1>🎯 4月の目標管理</h1>
+      <p class="header-subtitle">2026年4月 — Personal PBL Tracker</p>
+    </div>
+    <!-- 全体の進捗率 -->
+    <div class="header-right">
+      <div class="overall-progress">
+        <span class="overall-label">全体進捗</span>
+        <span id="overall-percent" class="overall-percent">0%</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== フィルタバー ===== -->
+  <div class="filter-bar">
+    <!-- ステータスフィルタ（ボタン切り替え式） -->
+    <div class="filter-buttons">
+      <button class="filter-btn active" data-filter="all">すべて</button>
+      <button class="filter-btn" data-filter="not-started">未着手</button>
+      <button class="filter-btn" data-filter="in-progress">進行中</button>
+      <button class="filter-btn" data-filter="done">完了</button>
+    </div>
+  </div>
+
+  <!-- ===== 目標カード一覧 ===== -->
+  <main id="goals-container" class="goals-container">
+    <!-- JavaScriptで動的に生成 -->
+  </main>
+
+  <!-- ===== 目標追加ボタン ===== -->
+  <div class="add-goal-area">
+    <button id="add-goal-btn" class="add-goal-btn">＋ 新しい目標を追加</button>
+  </div>
+
+  <!-- ===== 目標追加モーダル ===== -->
+  <div id="goal-modal-overlay" class="modal-overlay">
+    <div class="modal">
+      <h3>目標を追加</h3>
+      <div class="modal-form">
+        <label for="goal-title-input">目標タイトル：</label>
+        <input type="text" id="goal-title-input" maxlength="60"
+          placeholder="例：英語の勉強を習慣化する">
+
+        <label for="goal-emoji-input">絵文字（1つ）：</label>
+        <input type="text" id="goal-emoji-input" maxlength="2" placeholder="例：🏃" class="emoji-input">
+      </div>
+      <div class="modal-buttons">
+        <button id="save-goal-btn" class="btn btn-save">追加</button>
+        <button id="cancel-goal-btn" class="btn btn-cancel">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== アクション編集モーダル ===== -->
+  <div id="modal-overlay" class="modal-overlay">
+    <div class="modal">
+      <h3 id="modal-title">アクションを編集</h3>
+      <div class="modal-form">
+        <label for="action-text-input">内容：</label>
+        <input type="text" id="action-text-input" maxlength="100">
+
+        <label for="action-memo-input">メモ（任意）：</label>
+        <textarea id="action-memo-input" rows="3" maxlength="500"
+          placeholder="気づいたこと、振り返りなどを記録..."></textarea>
+      </div>
+      <div class="modal-buttons">
+        <button id="save-action-btn" class="btn btn-save">保存</button>
+        <button id="cancel-action-btn" class="btn btn-cancel">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
