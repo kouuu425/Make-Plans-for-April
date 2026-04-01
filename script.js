@@ -126,21 +126,30 @@ async function loadGoals() {
   // キャッシュがあればそれを返す（高速化）
   if (cachedGoals) return cachedGoals;
 
-  const { data, error } = await supabase
-    .from("goals")
-    .select("data")
-    .eq("id", "default")
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from("goals")
+      .select("data")
+      .eq("id", "default")
+      .maybeSingle(); // single()と違い、0件でもエラーにならない
 
-  if (error || !data) {
-    // Supabaseにデータがない → 初期データを保存
+    if (!error && data && data.data) {
+      // Supabaseにデータがあった
+      cachedGoals = data.data;
+      return cachedGoals;
+    }
+
+    // データがない → 初期データを保存
     const initial = getInitialData();
     await saveGoals(initial);
     return initial;
+  } catch (e) {
+    // 通信エラー時はlocalStorageにフォールバック
+    console.error("Supabase読み込みエラー:", e);
+    const local = localStorage.getItem("april-2026-pbl-fallback");
+    if (local) return JSON.parse(local);
+    return getInitialData();
   }
-
-  cachedGoals = data.data;
-  return cachedGoals;
 }
 
 /**
@@ -148,15 +157,22 @@ async function loadGoals() {
  * upsert = データがあれば更新、なければ新規作成
  */
 async function saveGoals(goals) {
-  cachedGoals = goals; // キャッシュも更新
+  cachedGoals = goals;
 
-  await supabase
-    .from("goals")
-    .upsert({
-      id: "default",
-      data: goals,
-      updated_at: new Date().toISOString(),
-    });
+  // localStorageにもバックアップ保存（通信エラー時の保険）
+  localStorage.setItem("april-2026-pbl-fallback", JSON.stringify(goals));
+
+  try {
+    await supabase
+      .from("goals")
+      .upsert({
+        id: "default",
+        data: goals,
+        updated_at: new Date().toISOString(),
+      });
+  } catch (e) {
+    console.error("Supabase保存エラー:", e);
+  }
 }
 
 // ===================================
